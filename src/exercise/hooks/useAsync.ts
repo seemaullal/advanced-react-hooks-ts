@@ -1,4 +1,4 @@
-import React from 'react';
+import {useRef, useReducer, useEffect, useCallback} from 'react';
 
 export enum Status {
   IDLE = 'idle',
@@ -35,32 +35,36 @@ function asyncReducer(_state: AsyncState, action: ActionType): AsyncState {
   }
 }
 
-export function useAsync(
-  asyncCallback: () => void | Promise<any>,
-  status: {status: Status},
-  dependencyList: unknown[],
-) {
-  const [state, dispatch] = React.useReducer(asyncReducer, {
-    status: Status.IDLE,
+export function useAsync(status: {status: Status}) {
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  });
+
+  const [state, dispatch] = useReducer(asyncReducer, {
+    status: status.status === Status.IDLE ? Status.IDLE : Status.PENDING,
     error: null,
     data: null,
   });
 
-  React.useEffect(() => {
-    const promise = asyncCallback();
-    if (!promise) {
-      return;
-    }
+  const run = useCallback((promise: Promise<unknown>) => {
     dispatch({type: Status.PENDING});
-    promise.then(
-      data => {
-        dispatch({type: Status.RESOLVED, data});
-      },
-      error => {
-        dispatch({type: Status.REJECTED, error});
-      },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, dependencyList);
-  return state;
+    promise
+      .then(data => {
+        if (isMounted.current) {
+          dispatch({type: Status.RESOLVED, data});
+        }
+      })
+      .catch((error: Error) => {
+        if (isMounted.current) {
+          dispatch({type: Status.REJECTED, error});
+        }
+      });
+  }, []);
+
+  return {...state, run};
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   fetchPokemon,
   PokemonForm,
@@ -10,18 +10,16 @@ import type {Pokemon} from '../pokemon';
 import {useAsync, Status} from './hooks/useAsync';
 
 function PokemonInfo({pokemonName}: {pokemonName: string}) {
-  const state = useAsync(
-    () => {
-      if (!pokemonName) {
-        return;
-      }
-      return fetchPokemon(pokemonName);
-    },
-    {status: pokemonName ? Status.PENDING : Status.IDLE},
-    [pokemonName],
-  );
+  const {data: pokemon, status, error, run} = useAsync({
+    status: pokemonName ? Status.PENDING : Status.IDLE,
+  });
 
-  const {data: pokemon, status, error} = state;
+  useEffect(() => {
+    if (!pokemonName) {
+      return;
+    }
+    run(fetchPokemon(pokemonName));
+  }, [pokemonName, run]);
 
   if (status === 'idle' || !pokemonName) {
     return <>'Submit a pokemon'</>;
