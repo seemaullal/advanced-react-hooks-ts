@@ -9,7 +9,7 @@ interface CountContextInterface {
 }
 const CountContext = React.createContext<CountContextInterface | null>(null);
 
-function useCount(): CountContextInterface {
+function useCount() {
   const value = useContext(CountContext);
   if (!value)
     throw new Error(
