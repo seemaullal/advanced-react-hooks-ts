@@ -2,12 +2,13 @@
 // http://localhost:3000/isolated/exercise/04.js
 
 import React, {useLayoutEffect} from 'react';
+interface Message {
+  id: number;
+  author: string;
+  content: string;
+}
 
-function MessagesDisplay({
-  messages,
-}: {
-  messages: Array<{id: number; author: string; content: string}>;
-}) {
+function MessagesDisplay({messages}: {messages: Message[]}) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     if (containerRef.current) {
@@ -41,7 +42,9 @@ function SlooooowSibling() {
 }
 
 function App() {
-  const [messages, setMessages] = React.useState(allMessages.slice(0, 8));
+  const [messages, setMessages] = React.useState<Message[]>(
+    allMessages.slice(0, 8),
+  );
   const addMessage = () =>
     messages.length < allMessages.length
       ? setMessages(allMessages.slice(0, messages.length + 1))
@@ -66,7 +69,7 @@ function App() {
 
 export default App;
 
-const allMessages = [
+const allMessages: Message[] = [
   `Leia: Aren't you a little short to be a stormtrooper?`,
   `Luke: What? Oh... the uniform. I'm Luke Skywalker. I'm here to rescue you.`,
   `Leia: You're who?`,
