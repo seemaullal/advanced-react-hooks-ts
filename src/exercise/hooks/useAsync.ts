@@ -1,4 +1,4 @@
-import {useRef, useReducer, useEffect, useCallback} from 'react';
+import React, {useRef, useReducer, useEffect, useCallback} from 'react';
 
 export enum Status {
   IDLE = 'idle',
@@ -6,19 +6,23 @@ export enum Status {
   RESOLVED = 'resolved',
   REJECTED = 'rejected',
 }
-type AsyncState =
+type AsyncState<Data> =
   | {status: Status.IDLE; data: null; error: null}
   | {status: Status.PENDING; data: null; error: null}
-  | {status: Status.RESOLVED; data: unknown; error: null}
+  | {status: Status.RESOLVED; data: Data; error: null}
   | {status: Status.REJECTED; error: Error; data: null};
 
-type ActionType =
+type ActionType<Data> =
   | {type: Status.IDLE}
   | {type: Status.PENDING}
-  | {type: Status.RESOLVED; data: unknown}
+  | {type: Status.RESOLVED; data: Data}
   | {type: Status.REJECTED; error: Error};
 
-function asyncReducer(_state: AsyncState, action: ActionType): AsyncState {
+// type AsyncReducerAsyncReducer = React.Reducer<AsyncState<Data>,ActionType<Data>>
+function asyncReducer<Data>(
+  _state: AsyncState<Data>,
+  action: ActionType<Data>,
+): AsyncState<Data> {
   switch (action.type) {
     case Status.IDLE: {
       return {status: Status.IDLE, data: null, error: null};
@@ -34,8 +38,10 @@ function asyncReducer(_state: AsyncState, action: ActionType): AsyncState {
     }
   }
 }
-
-export function useAsync(status: {status: Status}) {
+type UseAsyncReturn<Data> = AsyncState<Data> & {
+  run: (promise: Promise<Data>) => void;
+};
+export function useAsync<Data>(status: {status: Status}): UseAsyncReturn<Data> {
   const isMounted = useRef(false);
 
   useEffect(() => {
@@ -45,13 +51,15 @@ export function useAsync(status: {status: Status}) {
     };
   });
 
-  const [state, dispatch] = useReducer(asyncReducer, {
+  const [state, dispatch] = useReducer<
+    React.Reducer<AsyncState<Data>, ActionType<Data>>
+  >(asyncReducer, {
     status: status.status === Status.IDLE ? Status.IDLE : Status.PENDING,
     error: null,
     data: null,
   });
 
-  const run = useCallback((promise: Promise<unknown>) => {
+  const run = useCallback((promise: Promise<Data>) => {
     dispatch({type: Status.PENDING});
     promise
       .then(data => {

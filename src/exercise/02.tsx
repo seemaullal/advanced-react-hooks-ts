@@ -10,7 +10,7 @@ import type {Pokemon} from '../pokemon';
 import {useAsync, Status} from './hooks/useAsync';
 
 function PokemonInfo({pokemonName}: {pokemonName: string}) {
-  const {data: pokemon, status, error, run} = useAsync({
+  const {run, ...state} = useAsync<Pokemon>({
     status: pokemonName ? Status.PENDING : Status.IDLE,
   });
 
@@ -21,14 +21,14 @@ function PokemonInfo({pokemonName}: {pokemonName: string}) {
     run(fetchPokemon(pokemonName));
   }, [pokemonName, run]);
 
-  if (status === 'idle' || !pokemonName) {
+  if (state.status === Status.IDLE) {
     return <>'Submit a pokemon'</>;
-  } else if (status === 'pending') {
+  } else if (state.status === Status.PENDING) {
     return <PokemonInfoFallback name={pokemonName} />;
-  } else if (status === 'rejected') {
-    throw error;
-  } else if (status === 'resolved') {
-    return <PokemonDataView pokemon={pokemon as Pokemon} />;
+  } else if (state.status === Status.REJECTED) {
+    throw state.error;
+  } else if (state.status === Status.RESOLVED) {
+    return <PokemonDataView pokemon={state.data} />;
   }
 
   throw new Error('This should be impossible');
