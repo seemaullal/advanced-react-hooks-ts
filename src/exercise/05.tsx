@@ -9,16 +9,25 @@ interface Message {
   content: string;
 }
 
-const MessagesDisplay = React.forwardRef(function MessagesDisplay(
-  {messages}: {messages: Message[]},
-  ref,
-) {
+interface MessagesDisplayProps {
+  messages: Message[];
+}
+interface MessagesDisplayRef {
+  scrollToTop: () => void;
+  scrollToBottom: () => void;
+}
+
+const MessagesDisplay = React.forwardRef<
+  MessagesDisplayRef,
+  MessagesDisplayProps
+>(function MessagesDisplay({messages}, ref) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     scrollToBottom();
   });
 
   function scrollToTop() {
+    if (!containerRef.current) return;
     containerRef.current.scrollTop = 0;
   }
 
@@ -44,7 +53,7 @@ const MessagesDisplay = React.forwardRef(function MessagesDisplay(
 });
 
 function App() {
-  const messageDisplayRef = React.useRef(null);
+  const messageDisplayRef = React.useRef<MessagesDisplayRef>(null);
   const [messages, setMessages] = React.useState(allMessages.slice(0, 8));
   const addMessage = () =>
     messages.length < allMessages.length
