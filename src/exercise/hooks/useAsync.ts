@@ -1,4 +1,5 @@
-import React, {useRef, useReducer, useEffect, useCallback} from 'react';
+import React, {useReducer, useCallback} from 'react';
+import {useSafeDispatch} from './useSafeDispatch';
 
 export enum Status {
   IDLE = 'idle',
@@ -18,7 +19,6 @@ type ActionType<Data> =
   | {type: Status.RESOLVED; data: Data}
   | {type: Status.REJECTED; error: Error};
 
-// type AsyncReducerAsyncReducer = React.Reducer<AsyncState<Data>,ActionType<Data>>
 function asyncReducer<Data>(
   _state: AsyncState<Data>,
   action: ActionType<Data>,
@@ -42,37 +42,27 @@ type UseAsyncReturn<Data> = AsyncState<Data> & {
   run: (promise: Promise<Data>) => void;
 };
 export function useAsync<Data>(status: {status: Status}): UseAsyncReturn<Data> {
-  const isMounted = useRef(false);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  });
-
-  const [state, dispatch] = useReducer<
+  const [state, unsafeDispatch] = useReducer<
     React.Reducer<AsyncState<Data>, ActionType<Data>>
   >(asyncReducer, {
     status: status.status === Status.IDLE ? Status.IDLE : Status.PENDING,
     error: null,
     data: null,
   });
-
-  const run = useCallback((promise: Promise<Data>) => {
-    dispatch({type: Status.PENDING});
-    promise
-      .then(data => {
-        if (isMounted.current) {
-          dispatch({type: Status.RESOLVED, data});
-        }
-      })
-      .catch((error: Error) => {
-        if (isMounted.current) {
-          dispatch({type: Status.REJECTED, error});
-        }
-      });
-  }, []);
+  const safeDispatch = useSafeDispatch(unsafeDispatch);
+  const run = useCallback(
+    (promise: Promise<Data>) => {
+      safeDispatch({type: Status.PENDING});
+      promise
+        .then(data => {
+          safeDispatch({type: Status.RESOLVED, data});
+        })
+        .catch((error: Error) => {
+          safeDispatch({type: Status.REJECTED, error});
+        });
+    },
+    [safeDispatch],
+  );
 
   return {...state, run};
 }
