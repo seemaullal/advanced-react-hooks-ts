@@ -3,9 +3,14 @@
 
 import React, {useEffect, useState, useDebugValue} from 'react';
 
+function formatDebugValue({query, state}: {query: string; state: boolean}) {
+  return `\`${query}\` => ${state}`;
+}
+
 function useMedia(query: string, initialState = false) {
   const [state, setState] = useState(initialState);
-  useDebugValue(`\`${query}\` => ${state}`);
+
+  useDebugValue({query, state}, formatDebugValue);
   useEffect(() => {
     let mounted = true;
     const mql = window.matchMedia(query);
