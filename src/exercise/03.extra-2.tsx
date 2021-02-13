@@ -2,9 +2,6 @@
 // 💯 caching in a context provider (exercise)
 // http://localhost:3000/isolated/exercise/03.extra-2.js
 
-// you can edit this here and look at the isolated page or you can copy/paste
-// this in the regular exercise file.
-
 import React, {useContext} from 'react';
 import {
   fetchPokemon,
@@ -13,10 +10,11 @@ import {
   PokemonInfoFallback,
   PokemonErrorBoundary,
 } from '../pokemon';
-import {useAsync} from '../utils';
+import type {Pokemon} from '../pokemon';
+import {useAsync, Status} from './hooks/useAsync';
 
 interface PokemonCacheInterface {
-  cache: any;
+  cache: Record<string, Pokemon>;
   dispatch: React.Dispatch<any>;
 }
 
@@ -33,7 +31,17 @@ function usePokemonCache() {
   }
   return cacheValue;
 }
-function pokemonCacheReducer(state: any, action: any) {
+
+type pokemonReducerAction = {
+  type: 'ADD_POKEMON';
+  pokemonName: string;
+  pokemonData: Pokemon;
+};
+
+function pokemonCacheReducer(
+  state: Record<string, Pokemon>,
+  action: pokemonReducerAction,
+) {
   switch (action.type) {
     case 'ADD_POKEMON': {
       return {...state, [action.pokemonName]: action.pokemonData};
@@ -52,7 +60,7 @@ const PokemonCacheProvider: React.FC = props => {
 
 function PokemonInfo({pokemonName}: {pokemonName: string}) {
   const {cache, dispatch} = usePokemonCache();
-  const {data: pokemon, status, error, run, setData} = useAsync();
+  const {run, setData, ...state} = useAsync<Pokemon>();
 
   React.useEffect(() => {
     if (!pokemonName) {
@@ -69,14 +77,14 @@ function PokemonInfo({pokemonName}: {pokemonName: string}) {
     }
   }, [cache, pokemonName, run, setData, dispatch]);
 
-  if (status === 'idle') {
+  if (state.status === Status.IDLE) {
     return <>'Submit a pokemon'</>;
-  } else if (status === 'pending') {
+  } else if (state.status === Status.PENDING) {
     return <PokemonInfoFallback name={pokemonName} />;
-  } else if (status === 'rejected') {
-    throw error;
-  } else if (status === 'resolved') {
-    return <PokemonDataView pokemon={pokemon} />;
+  } else if (state.status === Status.REJECTED) {
+    throw state.error;
+  } else if (state.status === Status.RESOLVED) {
+    return <PokemonDataView pokemon={state.data} />;
   } else {
     throw new Error('this should not be possible');
   }
@@ -133,7 +141,7 @@ function PokemonSection({
 }
 
 function App() {
-  const [pokemonName, setPokemonName] = React.useState<string>('');
+  const [pokemonName, setPokemonName] = React.useState('');
 
   function handleSubmit(newPokemonName: string) {
     setPokemonName(newPokemonName);

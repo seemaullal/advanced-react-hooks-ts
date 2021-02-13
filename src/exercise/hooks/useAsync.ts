@@ -40,8 +40,12 @@ function asyncReducer<Data>(
 }
 type UseAsyncReturn<Data> = AsyncState<Data> & {
   run: (promise: Promise<Data>) => void;
+  setData: (data: Data) => void;
+  setError: (error: Error) => void;
 };
-export function useAsync<Data>(status: {status: Status}): UseAsyncReturn<Data> {
+export function useAsync<Data>(
+  status = {status: Status.IDLE},
+): UseAsyncReturn<Data> {
   const [state, unsafeDispatch] = useReducer<
     React.Reducer<AsyncState<Data>, ActionType<Data>>
   >(asyncReducer, {
@@ -64,5 +68,14 @@ export function useAsync<Data>(status: {status: Status}): UseAsyncReturn<Data> {
     [safeDispatch],
   );
 
-  return {...state, run};
+  const setData = React.useCallback(
+    (data: Data) => safeDispatch({type: Status.RESOLVED, data}),
+    [safeDispatch],
+  );
+  const setError = React.useCallback(
+    (error: Error) => safeDispatch({type: Status.REJECTED, error}),
+    [safeDispatch],
+  );
+
+  return {...state, setData, setError, run};
 }
